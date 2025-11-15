@@ -1,4 +1,5 @@
 # Internship-
+won.py is the final output
 all the files in the repository is only for references where we have made many changes in each level.
 # EEPROM Simulation Project
 
@@ -18,7 +19,7 @@ This project was built in an incremental, phased approach. The repository contai
 
 * **Initial Phases:** Files like `phase_01.py`, `phase_02.py`, etc., represent the initial building blocks and basic logic.
 * **Incremental Features:** Later files incrementally add complexity, such as improved addressing logic, write-protect mechanisms, or control signal handling.
-* **Final Product:** The file named `[FINAL_FILE_NAME.py]` represents the final, merged product. It combines all the features and logic from the previous phases into a single, comprehensive EEPROM model.
+* **Final Product:** The file named `[won.py]` represents the final, merged product. It combines all the features and logic from the previous phases into a single, comprehensive EEPROM model.
 
 This structure is intended to showcase the iterative development process and provide a clear history of how the final simulation was built.
 
