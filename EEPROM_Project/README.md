@@ -17,10 +17,10 @@ It supports reading, writing, deleting, dumping, checksums, logging, and simulat
 - Power cycle simulation with timestamped logging.
 
 ## Files
-- `eeprom.bin` — Simulated EEPROM memory file.
-- `write_cycles.bin` — Tracks write cycles per address.
-- `eeprom_log.txt` — Logs all operations including power cycles.
-- `main.py` — The main EEPROM simulation script.
+- `eeprom.bin` â€” Simulated EEPROM memory file.
+- `write_cycles.bin` â€” Tracks write cycles per address.
+- `eeprom_log.txt` â€” Logs all operations including power cycles.
+- `main.py` â€” The main EEPROM simulation script.
 
 ## Usage
 1. Run `main.py` to interact with the EEPROM via menu options.
@@ -28,3 +28,4 @@ It supports reading, writing, deleting, dumping, checksums, logging, and simulat
 ## Requirements
 - Python 3.x
 - No external libraries required
+IN ABOVE FILES "won.py" is the final output we have submitted
