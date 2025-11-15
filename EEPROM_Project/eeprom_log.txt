@@ -1,0 +1,3 @@
+[2025-11-03 17:25:27] [INFO] Log cleared.
+[2025-11-03 18:02:09] [INFO] EEPROM loaded successfully.
+[2025-11-03 18:02:09] [INFO] EEPROM Simulator GUI ready.

@@ -1,0 +1,20 @@
+[2025-10-23 17:32:58] [INFO] EEPROM Simulator GUI ready.
+[2025-10-23 17:40:13] [INFO] EEPROM Simulator GUI ready.
+[2025-10-23 17:48:09] [INFO] EEPROM Simulator GUI ready.
+[2025-10-23 17:48:20] [INFO] Exiting EEPROM GUI.
+[2025-10-24 11:00:27] [INFO] EEPROM Simulator GUI ready.
+[2025-10-24 11:00:55] [SUCCESS] Byte written: Address=25, Value=42
+[2025-10-24 11:01:26] [SUCCESS] Byte read: Address=25, Value=42
+[2025-10-24 11:03:03] [INFO] Exiting EEPROM GUI.
+[2025-10-24 11:51:11] [INFO] EEPROM Simulator GUI ready.
+[2025-10-24 11:56:32] [SUCCESS] Byte written: Address=25, Value=42
+[2025-10-24 11:56:38] [SUCCESS] Byte read: Address=25, Value=42
+[2025-10-24 11:57:29] [SUCCESS] Multiple bytes written at 0: [10]
+[2025-10-24 12:05:05] [SUCCESS] Multiple bytes written at 10: [11]
+[2025-10-24 12:05:24] [SUCCESS] Multiple bytes written at 5: b'hello'
+[2025-10-24 12:05:24] [SUCCESS] String written at 5: hello
+[2025-10-24 12:06:46] [SUCCESS] Multiple bytes read at 5: [104, 101, 108, 108, 111, 11, 112, 108, 101]
+[2025-10-24 12:06:46] [SUCCESS] String read at 5: hellople
+[2025-10-24 12:33:30] [INFO] EEPROM Simulator GUI ready (using popup dialog workflow).
+[2025-10-24 12:33:58] [SUCCESS] Byte written: Address=2, Value=25
+[2025-10-24 12:34:23] [SUCCESS] String written at 25: '1,2,3,4,5' (9 bytes)

@@ -1,0 +1,312 @@
+# EEPROM Simulation - Review 6+ (Final Update)
+# Integrated with Logging, String Separator Fix, Delete & Reset Options
+# Includes integrated Power Cycle functionality
+# Automatically generates README.md on first run
+
+import time
+from datetime import datetime
+import os
+
+EEPROM_FILE = "eeprom.bin"
+EEPROM_SIZE = 1024  # 1KB EEPROM
+MAX_WRITE_CYCLES = 1000
+WRITE_CYCLE_FILE = "write_cycles.bin"
+LOG_FILE = "eeprom_log.txt"
+
+write_cycles = [0] * EEPROM_SIZE
+
+# ------------------- Create README -------------------
+def create_readme():
+    """Create README.md in the folder if it doesn't exist."""
+    content = """# EEPROM Simulation Project - Review 6+ (Final)
+
+## Description
+This project simulates an EEPROM (Electrically Erasable Programmable Read-Only Memory) using a binary file. 
+It supports reading, writing, deleting, dumping, checksums, logging, and simulates write-cycle limits.
+
+## Features
+- Initialize EEPROM with default text ("Mission Complete").
+- Read/write single or multiple bytes.
+- Read/write strings with 0x00 separators.
+- Delete single bytes, blocks, or all written data.
+- Compute block checksums.
+- Full EEPROM reset with default text preservation.
+- Log all operations with timestamps.
+- Reset log file option.
+- Write cycle limit simulation (default 1000 per byte).
+- Power cycle simulation with timestamped logging.
+
+## Files
+- `eeprom.bin` — Simulated EEPROM memory file.
+- `write_cycles.bin` — Tracks write cycles per address.
+- `eeprom_log.txt` — Logs all operations including power cycles.
+- `main.py` — The main EEPROM simulation script.
+
+## Usage
+1. Run `main.py` to interact with the EEPROM via menu options.
+
+## Requirements
+- Python 3.x
+- No external libraries required
+"""
+    if not os.path.exists("README.md"):
+        with open("README.md", "w") as f:
+            f.write(content)
+        print("README.md has been created in the current folder.")
+
+# ------------------- Logging -------------------
+def log_action(message):
+    """Append log entries with timestamps."""
+    with open(LOG_FILE, "a") as f:
+        f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
+
+# ------------------- Safe Input Helper -------------------
+def get_int_input(prompt, min_val=0, max_val=EEPROM_SIZE-1):
+    """Safe integer input with range checking."""
+    try:
+        val = int(input(prompt))
+        if not (min_val <= val <= max_val):
+            raise ValueError
+        return val
+    except ValueError:
+        print(f"Invalid input! Enter a number between {min_val} and {max_val}.")
+        return get_int_input(prompt, min_val, max_val)
+
+# ------------------- EEPROM Initialization -------------------
+def init_eeprom():
+    """Initialize EEPROM and write-cycle file if not present, with default text."""
+    global write_cycles
+    try:
+        with open(EEPROM_FILE, "rb") as f:
+            data = f.read()
+            if len(data) != EEPROM_SIZE:
+                raise FileNotFoundError
+        with open(WRITE_CYCLE_FILE, "rb") as f:
+            cycles = f.read()
+            if len(cycles) != EEPROM_SIZE:
+                raise FileNotFoundError
+            write_cycles = list(cycles)
+        print("EEPROM and write-cycle data loaded.")
+        log_action("EEPROM loaded successfully")
+        return
+    except FileNotFoundError:
+        pass
+
+    with open(EEPROM_FILE, "wb") as f:
+        default_text = b"Mission Complete"
+        f.write(default_text + bytes([0x00]) + bytes([0xFF] * (EEPROM_SIZE - len(default_text) - 1)))
+    with open(WRITE_CYCLE_FILE, "wb") as f:
+        f.write(bytes([0] * EEPROM_SIZE))
+    print(f"EEPROM initialized with default text: 'Mission Complete'")
+    log_action("EEPROM initialized fresh with default text: 'Mission Complete'")
+
+def save_write_cycles():
+    """Save write-cycle data to file."""
+    with open(WRITE_CYCLE_FILE, "wb") as f:
+        f.write(bytes(write_cycles))
+
+# ------------------- EEPROM Operations -------------------
+def write_byte(address, value):
+    """Write a single byte and track write cycles."""
+    if address < 0 or address >= EEPROM_SIZE:
+        print("Address out of range!")
+        return
+    if write_cycles[address] >= MAX_WRITE_CYCLES:
+        print(f"Max write cycles reached at address {address}")
+        return
+    with open(EEPROM_FILE, "r+b") as f:
+        f.seek(address)
+        f.write(bytes([value & 0xFF]))
+    write_cycles[address] += 1
+    save_write_cycles()
+    print(f"Wrote {value} (0x{value:02X}) at address {address} (Write cycles: {write_cycles[address]})")
+    log_action(f"WRITE address={address} value={value:#04X}")
+
+def read_byte(address):
+    """Read a single byte."""
+    if address < 0 or address >= EEPROM_SIZE:
+        print("Address out of range!")
+        return None
+    with open(EEPROM_FILE, "rb") as f:
+        f.seek(address)
+        data = f.read(1)
+        print(f"Address: {address}  Value: {data[0]} (0x{data[0]:02X})")
+        log_action(f"READ address={address} value={data[0]:02X}")
+        return data[0]
+
+def write_bytes(start_address, data_list):
+    """Write multiple bytes sequentially."""
+    for offset, val in enumerate(data_list):
+        write_byte(start_address + offset, val)
+    log_action(f"WRITE_BLOCK start={start_address} length={len(data_list)}")
+
+def read_bytes(start_address, length):
+    """Read multiple bytes sequentially."""
+    vals = [read_byte(start_address + i) for i in range(length)]
+    log_action(f"READ_BLOCK start={start_address} length={length}")
+    return vals
+
+def write_string(start_address, text):
+    """Write string as bytes and add a 0x00 separator."""
+    write_bytes(start_address, [ord(c) for c in text])
+    if start_address + len(text) < EEPROM_SIZE:
+        write_byte(start_address + len(text), 0x00)  # separator
+    log_action(f"WRITE_STRING '{text}' at {start_address}")
+
+def read_string(start_address, length):
+    """Read string of given length."""
+    byte_list = read_bytes(start_address, length)
+    s = "".join(chr(b) for b in byte_list if b is not None and 32 <= b <= 126)
+    print(f"Detected string at address {start_address}: '{s}'")
+    log_action(f"READ_STRING '{s}' from {start_address}")
+    return s
+
+# ------------------- Optimized EEPROM Dump -------------------
+def dump_eeprom(start=0, length=32):
+    """Efficiently print and log EEPROM section with string detection."""
+    with open(EEPROM_FILE, "rb") as f:
+        f.seek(start)
+        data = f.read(length)
+
+    print(f"EEPROM Dump [{start}-{start+length-1}]:")
+    print("Address  Value(decimal)  Value(hex)  ASCII")
+    print("-----------------------------------------")
+
+    ascii_buffer = []
+    for offset, b in enumerate(data):
+        addr = start + offset
+        if 32 <= b <= 126:
+            ascii_char = chr(b)
+            ascii_buffer.append(ascii_char)
+        else:
+            ascii_char = "."
+            if ascii_buffer:
+                print(f"Detected string: '{''.join(ascii_buffer)}'")
+                ascii_buffer = []
+
+        print(f"{addr:5}    {b:12}    0x{b:02X}    {ascii_char}")
+
+    if ascii_buffer:
+        print(f"Detected string: '{''.join(ascii_buffer)}'")
+
+    log_action(f"Dumped EEPROM section {start}-{start+length-1}")
+
+def compute_checksum(start_address, length):
+    """Compute simple checksum (sum modulo 256) for a block."""
+    bytes_block = read_bytes(start_address, length)
+    checksum = sum(b for b in bytes_block if b is not None) % 256
+    print(f"Checksum of block [{start_address}-{start_address+length-1}] = {checksum} (0x{checksum:02X})")
+    log_action(f"CHECKSUM start={start_address} length={length} value={checksum:02X}")
+    return checksum
+
+# ------------------- Delete & Reset Functions -------------------
+def delete_single_byte():
+    addr = get_int_input("Enter byte address to delete: ")
+    write_byte(addr, 0xFF)
+    print(f"Deleted byte at address {addr}")
+    log_action(f"Deleted single byte at address {addr}")
+
+def delete_string(start_address=None, length=None):
+    if start_address is None:
+        start_address = get_int_input("Start address: ")
+    if length is None:
+        length = get_int_input("Length to delete: ", 1, EEPROM_SIZE-start_address)
+    for i in range(length):
+        write_byte(start_address + i, 0xFF)
+    print(f"Deleted {length} bytes from address {start_address}")
+    log_action(f"Deleted {length} bytes from address {start_address}")
+
+def delete_all_written():
+    with open(EEPROM_FILE, "r+b") as f:
+        data = bytearray(f.read())
+        erased = 0
+        for i in range(len(data)):
+            if data[i] != 0xFF:
+                data[i] = 0xFF
+                erased += 1
+                write_cycles[i] += 1
+        f.seek(0)
+        f.write(data)
+    save_write_cycles()
+    print(f"Deleted {erased} bytes of written data.")
+    log_action(f"Deleted {erased} bytes of written data")
+
+def reset_eeprom():
+    with open(EEPROM_FILE, "wb") as f:
+        default_text = b"Mission Complete"
+        f.write(default_text + bytes([0x00]) + bytes([0xFF] * (EEPROM_SIZE - len(default_text) - 1)))
+    global write_cycles
+    write_cycles = [0] * EEPROM_SIZE
+    save_write_cycles()
+    print("EEPROM has been fully reset with default text.")
+    log_action("EEPROM fully reset with default text")
+
+def reset_log():
+    with open(LOG_FILE, "w") as f:
+        f.write("")
+    print("Log file has been reset successfully.")
+    log_action("Log file reset")
+
+# ------------------- Power Cycle -------------------
+def power_cycle():
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print("Simulating POWER OFF...")
+    time.sleep(2)
+    print("Power OFF complete.")
+    print("Simulating POWER ON...")
+    time.sleep(2)
+    print("Power ON complete.")
+    log_action(f"Power cycle performed at {timestamp}")
+    print(f"Power cycle completed and logged at {timestamp}")
+
+# ------------------- Main Menu -------------------
+def main_menu():
+    menu_actions = {
+        "1": lambda: write_byte(get_int_input("Address (0-1023): "), get_int_input("Value (0-255): ", 0, 255)),
+        "2": lambda: read_byte(get_int_input("Address (0-1023): ")),
+        "3": lambda: write_bytes(get_int_input("Start address (0-1023): "), 
+                                 [int(x.strip()) for x in input("Comma-separated values: ").split(",")]),
+        "4": lambda: print("Read sequence:", [v for v in read_bytes(get_int_input("Start address (0-1023): "),
+                                                                   get_int_input("Length: ", 1, EEPROM_SIZE)) if v is not None]),
+        "5": lambda: write_string(get_int_input("Start address (0-1023): "), input("String to write: ")),
+        "6": lambda: read_string(get_int_input("Start address (0-1023): "), get_int_input("String length: ", 1, EEPROM_SIZE)),
+        "7": lambda: dump_eeprom(get_int_input("Start address: "), get_int_input("Length: ", 1, EEPROM_SIZE)),
+        "8": lambda: compute_checksum(get_int_input("Start address: "), get_int_input("Block length: ", 1, EEPROM_SIZE)),
+        "9": reset_log,
+        "10": delete_single_byte,
+        "11": delete_string,
+        "12": delete_all_written,
+        "13": reset_eeprom,
+        "14": power_cycle,
+        "0": lambda: exit()
+    }
+
+    while True:
+        print("\n--- EEPROM Menu ---")
+        print("1: Write single byte")
+        print("2: Read single byte")
+        print("3: Write multiple bytes")
+        print("4: Read multiple bytes")
+        print("5: Write string")
+        print("6: Read string")
+        print("7: Dump EEPROM section")
+        print("8: Compute block checksum")
+        print("9: Reset log file")
+        print("10: Delete single byte")
+        print("11: Delete string/block")
+        print("12: Delete all written data")
+        print("13: Reset entire EEPROM")
+        print("14: Simulate Power Cycle")
+        print("0: Exit")
+        choice = input("Enter choice: ").strip()
+        action = menu_actions.get(choice)
+        if action:
+            action()
+        else:
+            print("Invalid choice! Try again.")
+
+# ------------------- Program Start -------------------
+if __name__ == "__main__":
+    create_readme()   # create README automatically
+    init_eeprom()
+    main_menu()
